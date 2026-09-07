@@ -1,4 +1,4 @@
-"""Identical topology to apps/api/app/queue.py — see
+"""Identical topology to backend/api/app/queue.py — see
 docs/context/05-pipeline-architecture.md for the shared source of truth.
 Declaring the same durable queues/arguments from both sides is idempotent."""
 

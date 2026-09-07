@@ -76,7 +76,17 @@ docker compose up
 
 # --- Backend (from backend/) ---
 uv sync --all-packages          # first time / after dependency changes
-uv run pytest packages/agents/tests packages/db/tests -v
+uv run pytest packages/agents/tests packages/db/tests packages/storage/tests -v
+
+# api/tests and worker/tests need a real Postgres (occupancy-write gating,
+# queue-redelivery idempotency) -- they skip automatically without this.
+# Point TEST_DATABASE_URL at any disposable Postgres, e.g. a scratch DB on
+# the docker-compose one: `docker compose exec postgres psql -U lease_agent
+# -d lease_agent -c "CREATE DATABASE lease_agent_test"`, then:
+TEST_DATABASE_URL="postgresql+asyncpg://lease_agent:lease_agent@localhost:5432/lease_agent_test" \
+  uv run pytest api/tests worker/tests -v
+# CI provides its own ephemeral Postgres service container for these — see
+# .github/workflows/ci.yml.
 
 # API only, from backend/api/
 uv run uvicorn app.main:app --reload

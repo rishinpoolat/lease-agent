@@ -1,7 +1,7 @@
 """The ModelProvider boundary — see docs/context/04-agent-boundaries.md.
 
 Hard rules (enforced by convention + code review, not the type system):
-1. Only apps/worker calls a ModelProvider. apps/api only enqueues jobs.
+1. Only backend/worker calls a ModelProvider. backend/api only enqueues jobs.
 2. Every ExtractedField must carry a source_excerpt, or have
    confidence == "not_found" and source_excerpt == None. Never a value with
    no source.

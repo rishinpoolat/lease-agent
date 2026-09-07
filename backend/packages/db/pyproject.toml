@@ -6,6 +6,11 @@ dependencies = [
     "sqlalchemy>=2.0.35",
     "asyncpg>=0.29",
     "alembic>=1.13",
+    # Required by SQLAlchemy's async engine for run_sync()/dispose() --
+    # resolvable as a transitive candidate but not always actually pulled
+    # in depending on platform, so it's pinned directly rather than relied
+    # on implicitly (this was a real "works in Docker, fails locally" gap).
+    "greenlet>=3.0",
 ]
 
 [build-system]

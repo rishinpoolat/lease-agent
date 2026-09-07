@@ -11,6 +11,7 @@ docs/context/04-agent-boundaries.md.
 
 import re
 from dataclasses import dataclass
+from decimal import Decimal
 
 from agents.provider import ImageRef
 from agents.schemas import (
@@ -29,8 +30,14 @@ from agents.units_lookup import load_unit_labels
 _MONEY = r"([\d,]+(?:\.\d+)?)"
 
 
-def _money(text: str) -> float | None:
-    return float(text.replace(",", "")) if text else None
+def _money(text: str) -> str | None:
+    """Returns an exact decimal string ("8500", not 8500.0) -- money is
+    never a float anywhere in this pipeline (rules.py parses it back with
+    Decimal). JSON has no native decimal type, so a string is how an exact
+    amount survives the round trip through LeaseField.value (JSONB)."""
+    if not text:
+        return None
+    return str(Decimal(text.replace(",", "")))
 
 
 def _paragraphs(text: str) -> list[str]:
@@ -161,7 +168,7 @@ def _flags_for(fields: list[ExtractedField]) -> list[FlagCandidate]:
         )
 
     rent = by_name.get("rent_amount")
-    if rent and rent.value is not None and not (100 <= float(rent.value) <= 100_000):
+    if rent and rent.value is not None and not (Decimal("100") <= Decimal(str(rent.value)) <= Decimal("100000")):
         flags.append(
             FlagCandidate(field_name="rent_amount", description=f"Rent amount {rent.value} looks outside a plausible range", severity="medium")
         )

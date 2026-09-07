@@ -24,10 +24,11 @@ def test_extracts_core_fields_from_fixture_lease():
     assert fields["start_date"].value == "2026-03-01"
     assert fields["end_date"].value == "2027-02-28"
     assert fields["term_months"].value == 12
-    assert fields["rent_amount"].value == 8500.0
+    # Money is an exact decimal string, never a float -- see stub.py's _money().
+    assert fields["rent_amount"].value == "8500"
     assert fields["rent_frequency"].value == "monthly"
-    assert fields["annual_rent"].value == 102000.0
-    assert fields["deposit_amount"].value == 8500.0
+    assert fields["annual_rent"].value == "102000"
+    assert fields["deposit_amount"].value == "8500"
     assert fields["escalation_clause"].value["is_defined"] is True
     assert fields["landlord_signed"].value is True
     assert fields["tenant_signed"].value is True

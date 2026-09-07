@@ -7,6 +7,7 @@ deletes the underlying row or overwrites the agent's original value.
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -80,10 +81,20 @@ async def accept_unit_match(lease_id: uuid.UUID, session: AsyncSession = Depends
     occupancy' in docs/context/03-validation-rules.md. Unit.status only
     flips to occupied here, after both R7 PASS and this explicit human
     acceptance; never on R7 PASS alone."""
-    lease = await session.get(
-        Lease, lease_id,
-        options=[selectinload(Lease.fields), selectinload(Lease.flags), selectinload(Lease.rule_evaluations)],
-    )
+    # session.get(..., options=[selectinload(...)]) silently ignores those
+    # options when the row is already in the session's identity map (only
+    # guaranteed to apply them on a real miss) -- an explicit select() with
+    # .options() always re-applies eager loading regardless of identity-map
+    # state. This was a real bug: it worked in production only because
+    # get_session() hands out a fresh session per request, so Lease was
+    # never already present -- caught by a test that reused one session.
+    lease = (
+        await session.scalars(
+            select(Lease)
+            .where(Lease.id == lease_id)
+            .options(selectinload(Lease.fields), selectinload(Lease.flags), selectinload(Lease.rule_evaluations))
+        )
+    ).first()
     if lease is None:
         raise HTTPException(status_code=404, detail="Lease not found")
     if lease.unit_id is None:

@@ -1,4 +1,4 @@
-from agents.rules import UnitRecord, check_r1, check_r3, check_r4, check_r6, check_r7, evaluate_rules
+from agents.rules import UnitRecord, check_r1, check_r2, check_r3, check_r4, check_r5, check_r6, check_r7, evaluate_rules
 from agents.schemas import ExtractedField
 
 
@@ -52,6 +52,62 @@ def test_r6_pass_when_annual_reconciles():
 def test_r6_fail_when_annual_does_not_reconcile():
     fields = {"rent_amount": field("rent_amount", 1000), "rent_frequency": field("rent_frequency", "monthly"), "annual_rent": field("annual_rent", 999)}
     assert check_r6(fields, {}).verdict == "FAIL"
+
+
+def test_r2_pass_when_mechanism_has_a_percentage():
+    fields = {"escalation_clause": field("escalation_clause", {"is_defined": True, "mechanism_text": "rent increases by 5% annually"})}
+    assert check_r2(fields, {}).verdict == "PASS"
+
+
+def test_r2_fail_when_only_vague_language_with_no_mechanism():
+    fields = {"escalation_clause": field("escalation_clause", {"is_defined": False, "mechanism_text": "as mutually agreed"})}
+    assert check_r2(fields, {}).verdict == "FAIL"
+
+
+def test_r2_fail_when_is_defined_explicitly_false():
+    fields = {"escalation_clause": field("escalation_clause", {"is_defined": False, "mechanism_text": ""})}
+    assert check_r2(fields, {}).verdict == "FAIL"
+
+
+def test_r2_not_determinable_when_missing():
+    assert check_r2({}, {}).verdict == "NOT_DETERMINABLE"
+
+
+def test_r2_accepts_a_plain_string_value_not_just_a_dict():
+    fields = {"escalation_clause": field("escalation_clause", "increases 5% each year")}
+    assert check_r2(fields, {}).verdict == "PASS"
+
+
+def test_r5_pass_when_both_parties_identified_and_signed():
+    fields = {
+        "landlord_name": field("landlord_name", "Acme"),
+        "tenant_name": field("tenant_name", "Bob"),
+        "landlord_signed": field("landlord_signed", True),
+        "tenant_signed": field("tenant_signed", True),
+    }
+    assert check_r5(fields, {}).verdict == "PASS"
+
+
+def test_r5_fail_when_a_party_has_not_signed():
+    fields = {
+        "landlord_name": field("landlord_name", "Acme"),
+        "tenant_name": field("tenant_name", "Bob"),
+        "landlord_signed": field("landlord_signed", True),
+        "tenant_signed": field("tenant_signed", False),
+    }
+    assert check_r5(fields, {}).verdict == "FAIL"
+
+
+def test_r5_not_determinable_when_parties_missing():
+    assert check_r5({}, {}).verdict == "NOT_DETERMINABLE"
+
+
+def test_r5_not_determinable_when_signatures_cannot_be_read():
+    fields = {
+        "landlord_name": field("landlord_name", "Acme"),
+        "tenant_name": field("tenant_name", "Bob"),
+    }
+    assert check_r5(fields, {}).verdict == "NOT_DETERMINABLE"
 
 
 def test_r7_pass_when_unit_available():

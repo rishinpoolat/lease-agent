@@ -9,7 +9,7 @@ members = ["api", "worker", "packages/agents", "packages/db", "packages/storage"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["api/tests", "worker/tests", "packages/agents/tests", "packages/db/tests"]
+testpaths = ["api/tests", "worker/tests", "packages/agents/tests", "packages/db/tests", "packages/storage/tests"]
 
 [dependency-groups]
 dev = [

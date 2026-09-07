@@ -52,8 +52,15 @@ async def seed(session: AsyncSession, units_json_path: Path = DEFAULT_UNITS_PATH
             select(Unit).where(Unit.unit_id == unit_data["unit_id"])
         )
         if existing:
+            # `status` is excluded deliberately: it's mutable at runtime
+            # (occupancy flips via the review flow, not this seed file) --
+            # re-syncing it here on every restart would silently revert a
+            # real occupancy change back to units.json's static baseline,
+            # which is exactly the kind of bug this comment exists to
+            # prevent someone from reintroducing.
             for key, value in unit_data.items():
-                setattr(existing, key, value)
+                if key != "status":
+                    setattr(existing, key, value)
         else:
             session.add(Unit(**unit_data))
         count += 1

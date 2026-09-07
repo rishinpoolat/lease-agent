@@ -1,6 +1,6 @@
 """RabbitMQ publishing. Topology matches docs/context/05-pipeline-architecture.md
 exactly — two work queues, each dead-lettering to its own `*.dlq` queue via
-the default exchange. apps/worker declares the identical topology on its
+the default exchange. backend/worker declares the identical topology on its
 side (queue declaration is idempotent/identical either way)."""
 
 import json

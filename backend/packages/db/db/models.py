@@ -16,7 +16,7 @@ writer of these rows.
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -24,6 +24,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
 from db.enums import Confidence, JobStatus, JobType, ReviewStatus, RuleVerdict, Severity, UnitStatus
+
+
+def _utcnow() -> datetime:
+    """Naive UTC timestamp (columns below are TIMESTAMP WITHOUT TIME ZONE).
+    `datetime.utcnow()` is deprecated in favor of `datetime.now(UTC)`, which
+    returns a timezone-aware value -- stripped back to naive here so the
+    column type doesn't need to change."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
 
 __all__ = [
     "Base",
@@ -55,7 +64,7 @@ class Job(Base):
     status: Mapped[JobStatus] = mapped_column(nullable=False, default=JobStatus.QUEUED)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(nullable=False, default=_utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
 
@@ -88,7 +97,7 @@ class Lease(Base):
     )
     source_file_ref: Mapped[str] = mapped_column(String, nullable=False)
     unit_id: Mapped[str | None] = mapped_column(ForeignKey("units.unit_id"), nullable=True)
-    uploaded_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
+    uploaded_at: Mapped[datetime] = mapped_column(nullable=False, default=_utcnow)
     extraction_job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=True, unique=True
     )
@@ -180,7 +189,7 @@ class PhotoReport(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     unit_id: Mapped[str] = mapped_column(ForeignKey("units.unit_id"), nullable=False)
-    uploaded_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
+    uploaded_at: Mapped[datetime] = mapped_column(nullable=False, default=_utcnow)
     photo_refs: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     condition_assessment: Mapped[str | None] = mapped_column(Text, nullable=True)
     detected_contents: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)

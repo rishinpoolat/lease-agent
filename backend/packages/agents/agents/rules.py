@@ -7,6 +7,7 @@ implements the check *logic*, mapped by rule_id.
 
 import json
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Literal
 
@@ -61,30 +62,46 @@ def _not_determinable(rule_id: str, reason: str, refs: list[str]) -> RuleResult:
     return RuleResult(rule_id=rule_id, verdict="NOT_DETERMINABLE", reason=reason, source_field_refs=refs)
 
 
-def _normalize_monthly_rent(fields: dict[str, ExtractedField]) -> tuple[float, list[str]] | None:
+def _money(field: ExtractedField) -> Decimal | None:
+    """Money fields are stored as exact decimal strings (see stub.py's
+    `_money`), never float -- JSON has no native decimal type, and a float
+    round-trip is exactly the kind of silent precision loss that shouldn't
+    touch a rent/deposit comparison. Returns None if the value isn't a
+    parseable decimal (defensive; the stub never produces one that isn't)."""
+    try:
+        return Decimal(str(field.value))
+    except (InvalidOperation, TypeError):
+        return None
+
+
+def _normalize_monthly_rent(fields: dict[str, ExtractedField]) -> tuple[Decimal, list[str]] | None:
     rent = _field(fields, "rent_amount")
     freq = _field(fields, "rent_frequency")
     if rent is None or freq is None:
         return None
+    rent_decimal = _money(rent)
+    if rent_decimal is None:
+        return None
     refs = ["rent_amount", "rent_frequency"]
     if freq.value == "monthly":
-        return float(rent.value), refs
+        return rent_decimal, refs
     if freq.value == "annual":
-        return float(rent.value) / 12, refs
+        return rent_decimal / 12, refs
     return None
 
 
 def check_r1(fields: dict[str, ExtractedField], units: dict[str, UnitRecord]) -> RuleResult:
     deposit = _field(fields, "deposit_amount")
     monthly = _normalize_monthly_rent(fields)
-    if deposit is None or monthly is None:
+    deposit_decimal = _money(deposit) if deposit is not None else None
+    if deposit_decimal is None or monthly is None:
         return _not_determinable(
             "R1", "deposit_amount or rent (amount/frequency) missing or unreadable",
             ["deposit_amount", "rent_amount", "rent_frequency"],
         )
     monthly_rent, rent_refs = monthly
     refs = ["deposit_amount", *rent_refs]
-    if float(deposit.value) >= monthly_rent:
+    if deposit_decimal >= monthly_rent:
         return RuleResult(rule_id="R1", verdict="PASS", reason="Deposit covers at least one month's rent", source_field_refs=refs)
     return RuleResult(
         rule_id="R1", verdict="FAIL",
@@ -176,16 +193,20 @@ def check_r6(fields: dict[str, ExtractedField], units: dict[str, UnitRecord]) ->
         return _not_determinable("R6", "rent_amount or rent_frequency missing", ["rent_amount", "rent_frequency"])
     if freq.value not in ("monthly", "annual"):
         return _not_determinable("R6", f"Unsupported rent frequency '{freq.value}'", ["rent_frequency"])
+    rent_decimal = _money(rent)
+    if rent_decimal is None:
+        return _not_determinable("R6", "rent_amount is not a valid decimal amount", ["rent_amount"])
     refs = ["rent_amount", "rent_frequency"]
     annual_stated = _field(fields, "annual_rent")
     if freq.value == "monthly":
-        computed_annual = float(rent.value) * 12
+        computed_annual = rent_decimal * 12
         if annual_stated is not None:
             refs = [*refs, "annual_rent"]
-            if abs(float(annual_stated.value) - computed_annual) > 0.01:
+            annual_decimal = _money(annual_stated)
+            if annual_decimal is not None and annual_decimal != computed_annual:
                 return RuleResult(
                     rule_id="R6", verdict="FAIL",
-                    reason=f"Stated annual rent ({annual_stated.value}) != monthly x 12 ({computed_annual})",
+                    reason=f"Stated annual rent ({annual_decimal}) != monthly x 12 ({computed_annual})",
                     source_field_refs=refs,
                 )
         return RuleResult(rule_id="R6", verdict="PASS", reason="Annual rent reconciles with monthly rent", source_field_refs=refs)

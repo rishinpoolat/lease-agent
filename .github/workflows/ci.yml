@@ -11,6 +11,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+      RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
+      # Enables the worker/api integration tests (occupancy-write gating,
+      # queue-redelivery idempotency) -- they skip gracefully without this.
+      TEST_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
     steps:
       - uses: actions/checkout@v4
 
@@ -23,14 +43,10 @@ jobs:
         run: uv sync --all-packages
 
       - name: Run tests
-        run: uv run pytest packages/agents/tests packages/db/tests -v
+        run: uv run pytest packages/agents/tests packages/db/tests packages/storage/tests api/tests worker/tests -v
 
       - name: Import-check the API and worker apps
-        env:
-          DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
-        run: |
-          uv run python -c "import app.main; import worker.main; print('OK')"
+        run: uv run python -c "import app.main; import worker.main; print('OK')"
 
   frontend:
     runs-on: ubuntu-latest

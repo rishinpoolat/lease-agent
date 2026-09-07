@@ -71,6 +71,12 @@ export default function UnitDetailPage({ params }: { params: Promise<{ unitId: s
                 </p>
                 <button
                   onClick={async () => {
+                    // Per docs/context/06-human-in-the-loop-ux.md: this is the
+                    // one action in the app that can mutate Unit.status, so
+                    // it's the one place a confirmation actually matters.
+                    if (!confirm(`Mark ${unit.label} as occupied by this lease? This cannot be undone from here.`)) {
+                      return;
+                    }
                     await api.acceptUnitMatch(lease.id);
                     refresh();
                   }}

@@ -8,7 +8,7 @@ docs/context/05-pipeline-architecture.md.
 import asyncio
 import json
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import aio_pika
 
@@ -61,7 +61,7 @@ async def _handle_message(queue_name: str, message: aio_pika.abc.AbstractIncomin
 
         job = await session.get(Job, job_id)
         job.status = JobStatus.DONE
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(UTC).replace(tzinfo=None)
         await session.commit()
         await message.ack()
 
