@@ -1,0 +1,53 @@
+SYNTHETIC SAMPLE DATA — authored for this this project, not a real lease.
+Used to exercise the extraction pipeline until the property owner's real sample
+lease document is available (see README).
+
+RESIDENTIAL LEASE AGREEMENT
+
+This Lease Agreement ("Agreement") is made and entered into by and between:
+
+Landlord: Marina Crest Holdings W.L.L., a company duly registered in the
+State of Qatar, hereinafter referred to as the "Landlord".
+
+Tenant: Ahmed Al-Sayed, holder of QID No. 28456123987, hereinafter referred
+to as the "Tenant".
+
+1. PREMISES
+The Landlord agrees to lease to the Tenant the residential unit known as
+Apartment 1204, Tower B, Marina Crest Residences, Lusail Marina District,
+Doha, Qatar (the "Premises").
+
+2. TERM
+This lease shall commence on 2026-03-01 and shall terminate on 2027-02-28,
+for a total term of 12 months, unless earlier terminated in accordance with
+this Agreement.
+
+3. RENT
+The Tenant shall pay rent of QAR 8,500 per month, payable in advance on the
+first day of each month. The total annual rent under this Agreement is
+QAR 102,000.
+
+4. SECURITY DEPOSIT
+The Tenant shall pay a security deposit of QAR 8,500 upon signing this
+Agreement, refundable subject to the condition of the Premises at the end
+of the term.
+
+5. RENT ESCALATION
+The rent shall increase by five percent (5%) upon each annual renewal of
+this Agreement.
+
+6. RENEWAL
+This Agreement may be renewed for successive one-year terms upon mutual
+written consent of both parties, provided notice is given at least 60 days
+before expiry.
+
+7. TERMINATION
+Either party may terminate this Agreement by providing 90 days' written
+notice. Early termination by the Tenant prior to the end of the term shall
+incur a penalty equal to two months' rent.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date
+first written above.
+
+Landlord Signature: M. Al-Kuwari                     Date: 2026-02-20
+Tenant Signature: Ahmed Al-Sayed                      Date: 2026-02-20

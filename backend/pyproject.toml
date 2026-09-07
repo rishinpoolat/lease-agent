@@ -1,0 +1,19 @@
+[project]
+name = "lease-agent-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["api", "worker", "packages/agents", "packages/db", "packages/storage"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["api/tests", "worker/tests", "packages/agents/tests", "packages/db/tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+]

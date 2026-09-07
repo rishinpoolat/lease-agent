@@ -1,0 +1,145 @@
+name: AI Multi-Agent PR Reviewer
+
+# Posts an AI-generated review comment on PRs using OpenRouter's free tier.
+# Needs an OPENROUTER_API_KEY repo secret (Settings -> Secrets and
+# variables -> Actions) -- get one free at https://openrouter.ai/keys.
+# Without it, this step is skipped rather than failing the run.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check for OPENROUTER_API_KEY
+        id: check_key
+        run: |
+          if [ -n "${{ secrets.OPENROUTER_API_KEY }}" ]; then
+            echo "HAS_KEY=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "HAS_KEY=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::OPENROUTER_API_KEY secret not set -- skipping AI review."
+          fi
+
+      - name: Get PR diff
+        id: get_diff
+        if: steps.check_key.outputs.HAS_KEY == 'true'
+        run: |
+          git diff "origin/${{ github.base_ref }}...HEAD" > pr_diff.txt
+          if [ -s pr_diff.txt ]; then
+            echo "DIFF_EXISTS=true" >> "$GITHUB_ENV"
+          else
+            echo "DIFF_EXISTS=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run OpenRouter multi-agent review
+        if: steps.check_key.outputs.HAS_KEY == 'true' && env.DIFF_EXISTS == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          node -e '
+          const fs = require("fs");
+          const https = require("https");
+
+          const diff = fs.readFileSync("pr_diff.txt", "utf8").slice(0, 8000);
+
+          const promptText = `You are a senior software engineer acting as a 2-agent review team for a full-stack agentic AI application (FastAPI + RabbitMQ worker + Postgres backend, Next.js frontend). Context: extracted data must always carry a source reference (traceability contract), reject actions must never delete rows, and the ModelProvider agent interface must only be called from the worker, never the API.
+
+          AGENT 1 (Correctness & Security Reviewer): Analyze this diff for bugs, security issues, and violations of the traceability/non-destructive-review/agent-boundary rules above.
+
+          AGENT 2 (Test Engineer): Identify missing edge cases and suggest unit tests for these changes.
+
+          Format your output strictly in clean Markdown with these headers:
+          ## Agent 1: Correctness & Security Audit
+          ## Agent 2: Suggested Tests
+
+          Code diff:
+          ${diff}`;
+
+          async function run() {
+            const reqData = JSON.stringify({
+              // Pick any model your OpenRouter key has access to -- see
+              // https://openrouter.ai/models. "openrouter/auto" lets
+              // OpenRouter route to an available free-tier model.
+              model: "openrouter/auto",
+              messages: [{ role: "user", content: promptText }]
+            });
+
+            const options = {
+              hostname: "openrouter.ai",
+              path: "/api/v1/chat/completions",
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com",
+                "X-Title": "GitHub Actions PR Reviewer",
+                "Content-Length": Buffer.byteLength(reqData)
+              }
+            };
+
+            const responseText = await new Promise((resolve, reject) => {
+              const req = https.request(options, (res) => {
+                let body = "";
+                res.on("data", (chunk) => (body += chunk));
+                res.on("end", () => resolve(body));
+              });
+              req.on("error", reject);
+              req.write(reqData);
+              req.end();
+            });
+
+            const parsed = JSON.parse(responseText);
+            const reviewComment =
+              parsed.choices?.[0]?.message?.content || "Unable to generate AI review.";
+
+            const ghData = JSON.stringify({ body: reviewComment });
+            const ghOptions = {
+              hostname: "api.github.com",
+              path: `/repos/${process.env.REPO_NAME}/issues/${process.env.PR_NUMBER}/comments`,
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
+                "User-Agent": "AI-PR-Reviewer-Action",
+                "Content-Type": "application/json",
+                "Content-Length": Buffer.byteLength(ghData)
+              }
+            };
+
+            await new Promise((resolve, reject) => {
+              const req = https.request(ghOptions, (res) => {
+                res.on("data", () => {});
+                res.on("end", resolve);
+              });
+              req.on("error", reject);
+              req.write(ghData);
+              req.end();
+            });
+
+            console.log("AI review posted.");
+          }
+
+          run().catch((err) => {
+            console.error(err);
+            process.exit(1);
+          });
+          '

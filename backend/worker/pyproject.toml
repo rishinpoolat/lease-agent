@@ -1,0 +1,23 @@
+[project]
+name = "lease-agent-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "aio-pika>=9.4",
+    "pdfplumber>=0.11",
+    "lease-agent-db",
+    "lease-agent-agents",
+    "lease-agent-storage",
+]
+
+[tool.uv.sources]
+lease-agent-db = { workspace = true }
+lease-agent-agents = { workspace = true }
+lease-agent-storage = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["worker"]

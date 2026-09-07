@@ -1,0 +1,118 @@
+:root {
+  color-scheme: light;
+  --bg: #fafafa;
+  --border: #ddd;
+  --text: #1a1a1a;
+  --muted: #666;
+  --pass: #1a7f37;
+  --fail: #c53030;
+  --warn: #b7791f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+header a {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-pending {
+  background: #eee;
+  color: var(--muted);
+}
+.badge-accepted,
+.badge-edited,
+.badge-PASS {
+  background: #e6f4ea;
+  color: var(--pass);
+}
+.badge-rejected,
+.badge-FAIL {
+  background: #fde8e8;
+  color: var(--fail);
+}
+.badge-NOT_DETERMINABLE {
+  background: #fef3e0;
+  color: var(--warn);
+}
+
+.review-control {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.review-control button {
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.source-excerpt {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.unit-status {
+  font-weight: 600;
+}
+
+a.unit-link {
+  color: #1a56db;
+}
