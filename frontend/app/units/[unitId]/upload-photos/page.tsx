@@ -1,8 +1,11 @@
 "use client";
 
+import { faCamera, faCheckCircle, faSpinner, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
 import { use, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useJobPolling } from "@/lib/useJobPolling";
 
@@ -26,39 +29,59 @@ export default function UploadPhotosPage({ params }: { params: Promise<{ unitId:
 
   return (
     <div>
-      <h1>Report an issue -- {unitId}</h1>
-      <p style={{ color: "var(--muted)" }}>
+      <h1 className="mb-1 text-xl font-semibold text-foreground">Report an issue — {unitId}</h1>
+      <p className="mb-5 text-sm text-muted-foreground">
         Upload one or more photos of the unit. The agent assesses condition, identifies visible
         contents/equipment, and drafts a work order if anything needs attention.
       </p>
 
       {!jobId && (
-        <div className="card">
+        <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center shadow-sm">
+          <FontAwesomeIcon icon={faCamera} className="mx-auto mb-3 h-8 w-8 text-primary" />
           <input
             type="file"
             accept="image/*"
             multiple
             onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            className="mx-auto block text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/20"
           />
-          <div style={{ marginTop: 12 }}>
-            <button onClick={handleSubmit} disabled={files.length === 0}>
+          <div className="mt-4">
+            <Button onClick={handleSubmit} disabled={files.length === 0} size="sm">
               Upload {files.length > 0 ? `(${files.length})` : ""}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {error && <p style={{ color: "var(--fail)" }}>{error}</p>}
+      {error && (
+        <p className="mt-3 flex items-center gap-1.5 text-sm text-fail">
+          <FontAwesomeIcon icon={faTriangleExclamation} className="h-3.5 w-3.5" />
+          {error}
+        </p>
+      )}
 
       {jobId && (
-        <div className="card">
-          <p>
-            Job <code>{jobId}</code>: <strong>{job?.status ?? "submitting..."}</strong>
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <p className="flex items-center gap-2 text-sm text-foreground">
+            {job?.status !== "done" && job?.status !== "failed" && (
+              <FontAwesomeIcon icon={faSpinner} className="h-3.5 w-3.5 animate-spin text-primary" />
+            )}
+            Job <code className="rounded bg-muted px-1 py-0.5">{jobId}</code>:{" "}
+            <strong>{job?.status ?? "submitting..."}</strong>
           </p>
-          {job?.status === "failed" && <p style={{ color: "var(--fail)" }}>{job.error}</p>}
+          {job?.status === "failed" && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-fail">
+              <FontAwesomeIcon icon={faTriangleExclamation} className="h-3.5 w-3.5" />
+              {job.error}
+            </p>
+          )}
           {job?.status === "done" && (
-            <p>
-              Done -- back to <Link className="unit-link" href={`/units/${unitId}`}>the unit page</Link>{" "}
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-pass">
+              <FontAwesomeIcon icon={faCheckCircle} className="h-3.5 w-3.5" />
+              Done — back to{" "}
+              <Link className="text-primary hover:underline" href={`/units/${unitId}`}>
+                the unit page
+              </Link>{" "}
               to review the assessment.
             </p>
           )}

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { ReviewStatus } from "@/lib/types";
 
 interface Props {
@@ -21,31 +24,44 @@ export function ReviewControl({ status, onAccept, onReject, onEdit, currentValue
 
   if (editing) {
     return (
-      <div className="review-control">
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
-        <button
+      <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          autoFocus
+          className="w-32"
+        />
+        <Button
+          size="sm"
+          variant="success"
           onClick={() => {
             onEdit?.(draft);
             setEditing(false);
           }}
         >
           Save
-        </button>
-        <button onClick={() => setEditing(false)}>Cancel</button>
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="review-control">
-      <span className={`badge badge-${status}`}>{status}</span>
-      <button onClick={onAccept} disabled={status === "accepted"}>
+    <div className="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
+      <StatusBadge value={status} />
+      <Button size="sm" variant="success" onClick={onAccept} disabled={status === "accepted"}>
         Accept
-      </button>
-      <button onClick={onReject} disabled={status === "rejected"}>
+      </Button>
+      <Button size="sm" variant="destructive" onClick={onReject} disabled={status === "rejected"}>
         Reject
-      </button>
-      {onEdit && <button onClick={() => setEditing(true)}>Edit</button>}
+      </Button>
+      {onEdit && (
+        <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+          Edit
+        </Button>
+      )}
     </div>
   );
 }

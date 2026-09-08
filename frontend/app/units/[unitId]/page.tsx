@@ -1,216 +1,228 @@
-"use client";
-
+import { faCamera, faFileLines, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { use, useCallback, useEffect, useState } from "react";
 
-import { ReviewControl } from "@/components/ReviewControl";
+import { AcceptUnitMatchCard } from "@/components/AcceptUnitMatchCard";
+import { ReviewField } from "@/components/ReviewField";
+import { ReviewFlag } from "@/components/ReviewFlag";
+import { ReviewWorkOrder } from "@/components/ReviewWorkOrder";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import type { UnitDetail } from "@/lib/types";
+import { displayValue } from "@/lib/format";
 
-function displayValue(value: unknown): string {
-  if (value === null || value === undefined) return "-";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+type Params = { params: Promise<{ unitId: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { unitId } = await params;
+  const unit = await api.getUnit(unitId);
+  return { title: `${unit.label} · Lease Agent` };
 }
 
-export default function UnitDetailPage({ params }: { params: Promise<{ unitId: string }> }) {
-  const { unitId } = use(params);
-  const [unit, setUnit] = useState<UnitDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(() => {
-    api.getUnit(unitId).then(setUnit).catch((e) => setError(String(e)));
-  }, [unitId]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  if (error) return <p style={{ color: "var(--fail)" }}>{error}</p>;
-  if (!unit) return <p>Loading...</p>;
-
+export default async function UnitDetailPage({ params }: Params) {
+  const { unitId } = await params;
+  const unit = await api.getUnit(unitId);
   const lease = unit.lease;
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>
-          {unit.label} <span className="unit-status">({unit.status})</span>
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-foreground">
+          {unit.label}{" "}
+          <span className="ml-1 align-middle text-xs font-semibold uppercase text-muted-foreground">
+            ({unit.status})
+          </span>
         </h1>
-        <Link className="unit-link" href={`/units/${unitId}/upload-photos`}>
-          + Report an issue
+        <Link href={`/units/${unitId}/upload-photos`} className={buttonVariants({ size: "sm" })}>
+          <FontAwesomeIcon icon={faPlus} className="h-3 w-3" />
+          Report an issue
         </Link>
       </div>
-      <p style={{ color: "var(--muted)" }}>
+      <p className="mb-5 text-sm text-muted-foreground">
         {unit.property_name} / {unit.building_name} / {unit.type}
       </p>
 
       {/* Lease panel */}
-      <section className="card">
-        <h2>Lease</h2>
-        {!lease && (
-          <p>
-            No lease uploaded for this unit yet.{" "}
-            <Link className="unit-link" href="/leases/upload">Upload one</Link>.
-          </p>
-        )}
-
-        {lease && (
-          <>
-            <p style={{ color: "var(--muted)" }}>
-              Uploaded {new Date(lease.uploaded_at).toLocaleString()} from{" "}
-              <code>{lease.source_file_ref}</code>
+      <Card className="mb-4 px-5">
+        <CardHeader className="px-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FontAwesomeIcon icon={faFileLines} className="h-4 w-4 text-primary" />
+            Lease
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          {!lease && (
+            <p className="text-sm text-muted-foreground">
+              No lease uploaded for this unit yet.{" "}
+              <Link className="text-primary hover:underline" href="/leases/upload">
+                Upload one
+              </Link>
+              .
             </p>
+          )}
 
-            {!lease.unit_match_accepted && (
-              <div className="card" style={{ background: "#fffbea" }}>
-                <p>
-                  This lease was matched to <strong>{unit.label}</strong> but the match hasn&apos;t been
-                  accepted yet. Accepting it is the only action that can flip the unit to occupied
-                  (and only if rule R7 passes).
-                </p>
-                <button
-                  onClick={async () => {
-                    // Per docs/context/06-human-in-the-loop-ux.md: this is the
-                    // one action in the app that can mutate Unit.status, so
-                    // it's the one place a confirmation actually matters.
-                    if (!confirm(`Mark ${unit.label} as occupied by this lease? This cannot be undone from here.`)) {
-                      return;
-                    }
-                    await api.acceptUnitMatch(lease.id);
-                    refresh();
-                  }}
-                >
-                  Accept unit match
-                </button>
-              </div>
-            )}
+          {lease && (
+            <>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Uploaded {new Date(lease.uploaded_at).toLocaleString()} from{" "}
+                <code className="rounded bg-muted px-1 py-0.5">{lease.source_file_ref}</code>
+              </p>
 
-            <h3>Extracted fields</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Value</th>
-                  <th>Confidence</th>
-                  <th>Review</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lease.fields.map((f) => (
-                  <tr key={f.id}>
-                    <td>{f.field_name}</td>
-                    <td>
-                      {displayValue(f.review_status === "edited" ? f.edited_value : f.value)}
-                      {f.review_status === "edited" && (
-                        <div className="source-excerpt">originally: {displayValue(f.value)}</div>
-                      )}
-                      {f.source_excerpt && <div className="source-excerpt">&ldquo;{f.source_excerpt}&rdquo;</div>}
-                    </td>
-                    <td>{f.confidence}</td>
-                    <td>
-                      <ReviewControl
-                        status={f.review_status}
-                        currentValue={displayValue(f.value)}
-                        onAccept={() => api.reviewLeaseField(f.id, "accept").then(refresh)}
-                        onReject={() => api.reviewLeaseField(f.id, "reject").then(refresh)}
-                        onEdit={(v) => api.reviewLeaseField(f.id, "edit", v).then(refresh)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {!lease.unit_match_accepted && (
+                <div className="mb-4">
+                  <AcceptUnitMatchCard leaseId={lease.id} unitLabel={unit.label} />
+                </div>
+              )}
 
-            <h3>Rule validation ({lease.rule_evaluations.length ? "owner_ruleset.json" : "pending"})</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Rule</th>
-                  <th>Verdict</th>
-                  <th>Reason</th>
-                  <th>Severity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lease.rule_evaluations.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.rule_id}</td>
-                    <td>
-                      <span className={`badge badge-${r.verdict}`}>{r.verdict}</span>
-                    </td>
-                    <td>{r.reason}</td>
-                    <td>{r.severity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {lease.flags.length > 0 && (
-              <>
-                <h3>Flags</h3>
-                <table>
-                  <thead>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">Extracted fields</h3>
+              <div className="mb-5 overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                     <tr>
-                      <th>Field</th>
-                      <th>Description</th>
-                      <th>Severity</th>
-                      <th>Review</th>
+                      <th className="px-3 py-2 font-medium">Field</th>
+                      <th className="px-3 py-2 font-medium">Value</th>
+                      <th className="px-3 py-2 font-medium">Confidence</th>
+                      <th className="w-56 px-3 py-2 font-medium">Review</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {lease.flags.map((fl) => (
-                      <tr key={fl.id}>
-                        <td>{fl.field_name ?? "(document-level)"}</td>
-                        <td>{fl.description}</td>
-                        <td>{fl.severity}</td>
-                        <td>
-                          <ReviewControl
-                            status={fl.review_status}
-                            onAccept={() => api.reviewFlag(fl.id, "accept").then(refresh)}
-                            onReject={() => api.reviewFlag(fl.id, "reject").then(refresh)}
-                          />
+                  <tbody className="divide-y divide-border">
+                    {lease.fields.map((f) => (
+                      <tr key={f.id}>
+                        <td className="px-3 py-2 font-medium text-foreground">{f.field_name}</td>
+                        <td className="px-3 py-2">
+                          {displayValue(f.review_status === "edited" ? f.edited_value : f.value)}
+                          {f.review_status === "edited" && (
+                            <div className="mt-0.5 text-xs italic text-muted-foreground">
+                              originally: {displayValue(f.value)}
+                            </div>
+                          )}
+                          {f.source_excerpt && (
+                            <div className="mt-0.5 text-xs italic text-muted-foreground">
+                              &ldquo;{f.source_excerpt}&rdquo;
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{f.confidence}</td>
+                        <td className="px-3 py-2">
+                          <ReviewField field={f} />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </>
-            )}
-          </>
-        )}
-      </section>
+              </div>
+
+              <h3 className="mb-2 text-sm font-semibold text-foreground">
+                Rule validation ({lease.rule_evaluations.length ? "owner_ruleset.json" : "pending"})
+              </h3>
+              <div
+                className={`overflow-x-auto rounded-md border border-border ${lease.flags.length > 0 ? "mb-5" : ""}`}
+              >
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Rule</th>
+                      <th className="px-3 py-2 font-medium">Verdict</th>
+                      <th className="px-3 py-2 font-medium">Reason</th>
+                      <th className="px-3 py-2 font-medium">Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {lease.rule_evaluations.map((r) => (
+                      <tr key={r.id}>
+                        <td className="px-3 py-2 font-medium text-foreground">{r.rule_id}</td>
+                        <td className="px-3 py-2">
+                          <StatusBadge value={r.verdict} />
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.reason}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.severity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {lease.flags.length > 0 && (
+                <>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Flags</h3>
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Field</th>
+                          <th className="px-3 py-2 font-medium">Description</th>
+                          <th className="px-3 py-2 font-medium">Severity</th>
+                          <th className="w-56 px-3 py-2 font-medium">Review</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {lease.flags.map((fl) => (
+                          <tr key={fl.id}>
+                            <td className="px-3 py-2 font-medium text-foreground">
+                              {fl.field_name ?? "(document-level)"}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{fl.description}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{fl.severity}</td>
+                            <td className="px-3 py-2">
+                              <ReviewFlag flag={fl} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Issues panel */}
-      <section className="card">
-        <h2>Reported issues</h2>
-        {unit.photo_reports.length === 0 && <p>No issues reported for this unit yet.</p>}
-        {unit.photo_reports.map((pr) => (
-          <div key={pr.id} className="card">
-            <p style={{ color: "var(--muted)" }}>
-              Reported {new Date(pr.uploaded_at).toLocaleString()} -- {pr.photo_refs.length} photo(s)
-            </p>
-            <p>{pr.condition_assessment ?? "Processing..."}</p>
-            {pr.detected_contents.length > 0 && (
-              <p>
-                <strong>Contents:</strong> {pr.detected_contents.join(", ")}
-              </p>
-            )}
-            {pr.work_orders.map((wo) => (
-              <div key={wo.id} className="card" style={{ background: "#fff8f0" }}>
-                <strong>{wo.title}</strong>
-                <p>{wo.description}</p>
-                <p>Severity: {wo.severity}</p>
-                <ReviewControl
-                  status={wo.review_status}
-                  onAccept={() => api.reviewWorkOrder(wo.id, "accept").then(refresh)}
-                  onReject={() => api.reviewWorkOrder(wo.id, "reject").then(refresh)}
-                />
+      <Card className="px-5">
+        <CardHeader className="px-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FontAwesomeIcon icon={faCamera} className="h-4 w-4 text-primary" />
+            Reported issues
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          {unit.photo_reports.length === 0 && (
+            <p className="text-sm text-muted-foreground">No issues reported for this unit yet.</p>
+          )}
+          <div className="space-y-3">
+            {unit.photo_reports.map((pr) => (
+              <div key={pr.id} className="rounded-md border border-border p-4">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Reported {new Date(pr.uploaded_at).toLocaleString()} — {pr.photo_refs.length} photo(s)
+                </p>
+                <p className="text-sm text-foreground">{pr.condition_assessment ?? "Processing..."}</p>
+                {pr.detected_contents.length > 0 && (
+                  <p className="mt-1 text-sm text-foreground">
+                    <strong>Contents:</strong> {pr.detected_contents.join(", ")}
+                  </p>
+                )}
+                {pr.work_orders.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {pr.work_orders.map((wo) => (
+                      <div key={wo.id} className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                        <strong className="text-sm text-foreground">{wo.title}</strong>
+                        <p className="mt-0.5 text-sm text-foreground">{wo.description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Severity: {wo.severity}</p>
+                        <div className="mt-2">
+                          <ReviewWorkOrder workOrder={wo} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-        ))}
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

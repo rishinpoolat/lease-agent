@@ -96,7 +96,12 @@ services:
     ports:
       - "3000:3000"
     environment:
+      # Browser-facing (client components): reaches the api container via
+      # the host-mapped port. Server-facing (RSC/generateMetadata, running
+      # inside this container): reaches it via the Compose service name --
+      # see lib/api.ts.
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_URL: http://api:8000
     volumes:
       - ./frontend:/app
       - web_node_modules:/app/node_modules

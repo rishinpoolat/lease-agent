@@ -1,7 +1,7 @@
 # Codebase Map
 
 _Update this file whenever a folder/project is added or a layer's
-responsibility changes — see `.claude/skills/codebase-map/SKILL.md`._
+responsibility changes._
 
 ---
 
@@ -70,19 +70,62 @@ clear the worker needed the same interface, not just the API — see ADR-008.
 - `storage.py` — `Storage` Protocol (ref-based: `save`/`read_bytes`/`read_text`, never raw paths at call sites) + `LocalDiskStorage`. `save` strips any directory components from the client-supplied filename before it touches a path (a real path-traversal bug, caught in code review, not a hypothetical) and every path access is re-verified to resolve inside `root`.
 - **Pattern for a new backend**: implement the protocol, swap the constructor call in `worker/deps.py` / `app/deps.py` — no call-site changes.
 
-## `frontend/` — Next.js (App Router)
-- `app/page.tsx` — unit list.
-- `app/units/[unitId]/page.tsx` — the "bringing them together" screen: lease panel (fields/rules/flags, each with `ReviewControl`) + issues panel (photo reports/work orders), plus the "accept unit match" action.
-- `app/leases/upload/page.tsx`, `app/units/[unitId]/upload-photos/page.tsx` — upload flows, poll via `useJobPolling`.
-- `components/ReviewControl.tsx` — the one shared accept/reject/edit component used for `LeaseField`, `Flag`, and `WorkOrder` alike (docs/context/06).
-- `lib/api.ts`, `lib/types.ts` — API client + types mirroring `backend/api/app/schemas.py` (kept in sync by hand — see README "what I left out").
+## `frontend/` — Next.js (App Router), real Server Components + client islands
+`app/page.tsx` and `app/units/[unitId]/page.tsx` are `async` **Server
+Components** — they call `lib/api.ts` directly during render (server-side,
+`cache: "no-store"` so every request is dynamically rendered — genuine SSR,
+not a static prerender). Interactivity is isolated into small `"use
+client"` leaf components that mutate via the existing API client then call
+`useRouter().refresh()` to re-run the Server Component, instead of the page
+holding fetched state itself.
+- `app/page.tsx` — unit list, Server Component.
+- `app/units/[unitId]/page.tsx` — the "bringing them together" screen
+  (Server Component): lease panel (fields/rules/flags) + issues panel
+  (photo reports/work orders). `generateMetadata` fetches the same unit —
+  Next/React dedupes this against the page's own fetch within one request.
+- `app/{loading,error}.tsx`, `app/units/[unitId]/{loading,error}.tsx` — App
+  Router's per-segment Suspense/error boundaries; also what makes the
+  per-route code splitting (automatic in App Router) actually load
+  something meaningful on the loading path instead of nothing.
+- `app/leases/upload/page.tsx`, `app/units/[unitId]/upload-photos/page.tsx`
+  — inherently interactive (file picker + `useJobPolling`), stay `"use
+  client"` — already their own route/chunk, nothing to server-render here.
+- `components/ReviewControl.tsx` — the one shared accept/reject/edit
+  **presentational** component used for `LeaseField`, `Flag`, and
+  `WorkOrder` alike (docs/context/06); no data-fetching of its own.
+- `components/{ReviewField,ReviewFlag,ReviewWorkOrder}.tsx` — thin `"use
+  client"` wrappers, one per entity kind, each owning that entity's mutation
+  call + `router.refresh()` and rendering `ReviewControl`. This is what lets
+  the parent page stay a Server Component instead of holding `unit` state.
+- `components/AcceptUnitMatchCard.tsx` — same pattern for the one
+  occupancy-mutating action (`confirm()` + API call + `router.refresh()`).
+- `components/StatusBadge.tsx` — shared badge for both the review-status
+  family and the rule-verdict family; the two families share a
+  green/red/amber color vocabulary (`accepted`/`edited`/`PASS` all render
+  green, `rejected`/`FAIL` both red) but are never interchangeable — a
+  field can be `accepted` and still feed a `FAIL` rule verdict, per
+  docs/context/06. Plain function, safe to render from Server Components
+  directly (Font Awesome's React components don't use hooks).
+- `lib/api.ts` — API client + types mirroring `backend/api/app/schemas.py`
+  (kept in sync by hand — see README "what I left out"). Picks its base URL
+  based on execution context: server-side fetches (inside the `web`
+  container) use `API_URL` (the Compose service name), browser fetches use
+  `NEXT_PUBLIC_API_URL` (the host-mapped port) — see `docker-compose.yml`'s
+  `web` service. This split only matters once something actually fetches
+  server-side, which is new as of the RSC conversion.
 - `lib/useJobPolling.ts` — simple interval poll of `GET /jobs/{id}`.
+- `app/globals.css` — Tailwind CSS v4 (`@import "tailwindcss"` + an
+  `@theme` block for the semantic colors `pass`/`fail`/`warn`/`muted`, used
+  as `bg-pass/10 text-pass` etc. everywhere).
 - `tests/` — Vitest + Testing Library.
-- **Pattern for a new review-able entity**: reuse `ReviewControl`, don't fork a new accept/reject implementation.
+- **Pattern for a new review-able entity**: reuse `ReviewControl` via a new
+  thin client wrapper (see `ReviewField.tsx`), don't fork a new accept/
+  reject implementation.
+- **Pattern for a new page**: default to a Server Component that fetches
+  directly; push only the interactive parts into `"use client"` leaves.
 
 ## `docs/context/` — the layered context system
-See `CLAUDE.md` and `.claude/rules/context-layers.md`. Not application code;
-read before writing application code.
+See `CLAUDE.md`. Not application code; read before writing application code.
 
 ## `docs/` (root files)
 `solution-brief.md`, `owner_ruleset.json`, `units.json` — provided/derived
@@ -95,11 +138,8 @@ arrived when this was built) — see `fixtures/README.md`. Used for manual
 end-to-end verification and as the basis for `stub.py`'s tests.
 
 ## `specs/`
-Per-feature `spec.md` + `plan.md`, created after plan-mode approval — see
-`.claude/rules/plan-mode.md`.
-
-## `.claude/`
-Claude Code configuration — rules, skills, agents, permissions.
+Per-feature `spec.md` + `plan.md`, one folder per feature, created before
+implementation begins.
 
 ## `.github/workflows/`
 - `ci.yml` — backend tests (pytest) + frontend lint/test/build, on push/PR.

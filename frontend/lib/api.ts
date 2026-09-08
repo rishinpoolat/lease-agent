@@ -9,7 +9,16 @@ import type {
   WorkOrder,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Server-side (RSC) fetches run inside the Next.js server process, which in
+// Docker Compose is a different network namespace from the browser -- it
+// must reach the api container via the Compose service name, not
+// "localhost". API_URL (server-only, not NEXT_PUBLIC_-prefixed) covers that
+// case; the browser keeps using NEXT_PUBLIC_API_URL, which points at the
+// host-mapped port. See docker-compose.yml's `web` service.
+const API_URL =
+  typeof window === "undefined"
+    ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000")
+    : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000");
 
 type ReviewAction = "accept" | "reject" | "edit";
 
