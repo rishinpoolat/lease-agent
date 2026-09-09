@@ -60,8 +60,26 @@ under Commands.
 - No live API key required — both the text and vision model calls are
   stubbed behind a `ModelProvider` interface.
 
-Full brief: `docs/solution-brief.md` (kept locally, gitignored — not part
-of this public repo).
+Full requirements/scope registry: `docs/context/01-requirements.md`.
+
+## Documentation
+
+The design lives in `docs/context/` as a set of authoritative, numbered
+reference files — read these for the reasoning behind the code, not just
+the result:
+
+| File | Covers |
+|---|---|
+| [`01-requirements.md`](docs/context/01-requirements.md) | Scope — what's built, deferred, or won't-do |
+| [`02-domain-model.md`](docs/context/02-domain-model.md) | Data shapes, the traceability contract every field owes the reviewer |
+| [`03-validation-rules.md`](docs/context/03-validation-rules.md) | The R1–R7 rule engine, occupancy gating |
+| [`04-agent-boundaries.md`](docs/context/04-agent-boundaries.md) | What `ModelProvider` can do, where it runs, what it must return |
+| [`05-pipeline-architecture.md`](docs/context/05-pipeline-architecture.md) | Queue flow, failure handling, scaling story |
+| [`06-human-in-the-loop-ux.md`](docs/context/06-human-in-the-loop-ux.md) | Review states, unit-view layout |
+| [`07-decisions.md`](docs/context/07-decisions.md) | Every ADR — why it's built this way, alternatives considered |
+
+`CODEBASE_MAP.md` (repo root) is the fastest way to answer "where does X
+live."
 
 ## Architecture
 
