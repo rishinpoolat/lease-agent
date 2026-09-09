@@ -1,6 +1,6 @@
-SYNTHETIC SAMPLE DATA — authored for this this project, not a real lease.
-Used to exercise the extraction pipeline until the property owner's real sample
-lease document is available (see README).
+SYNTHETIC SAMPLE DATA — authored for this project, not a real lease.
+Used to exercise the extraction pipeline until real sample data is
+available (see README).
 
 RESIDENTIAL LEASE AGREEMENT
 
