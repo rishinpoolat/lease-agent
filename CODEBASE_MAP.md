@@ -133,9 +133,9 @@ reference material. Read live by the backend at runtime — never copy their
 content into code.
 
 ## `fixtures/`
-Synthetic sample lease + photos (the property owner's real starter pack hadn't
-arrived when this was built) — see `fixtures/README.md`. Used for manual
-end-to-end verification and as the basis for `stub.py`'s tests.
+Synthetic sample lease + photos (no real sample data was available when
+this was built) — see `fixtures/README.md`. Used for manual end-to-end
+verification and as the basis for `stub.py`'s tests.
 
 ## `specs/`
 Per-feature `spec.md` + `plan.md`, one folder per feature, created before

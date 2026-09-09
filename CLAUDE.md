@@ -1,10 +1,11 @@
 # Lease Agent — Claude Code Context
 
-This project for the property owner: two linked AI agents for a property owner — one
+A personal project: two linked AI agents for a property owner — one
 that turns an uploaded lease into a structured, validated, traceable record,
 one that turns uploaded photos into a condition assessment and a draft work
 order — unified on a single per-unit screen with full human accept/reject
-control. Full brief: `docs/solution-brief.md`.
+control. Full brief: `docs/solution-brief.md` (kept locally, gitignored —
+not part of the public repo).
 
 Status: fully scaffolded and working end-to-end (verified via
 `docker compose up` — upload → queue → worker → rule validation → unit view

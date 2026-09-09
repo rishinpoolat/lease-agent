@@ -5,7 +5,7 @@ scaling/failure story?* This layer is the direct answer to the brief's "how
 you structure code and data to scale" and "where it would break first at
 scale."
 
-## Why a queue at all (for a this project)
+## Why a queue at all (at this project's scale)
 
 A synchronous request/response — API calls the model inline and returns the
 result — is simpler, and would work for a demo. It's the wrong shape for

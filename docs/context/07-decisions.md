@@ -26,7 +26,7 @@ rule evaluations + issues joined server-side), and it's the standard choice
 for a product-facing SaaS frontend with room to grow past "minimal UI."
 **Alternative considered**: React + Vite — simpler to scaffold, reasonable
 for a pure SPA, but Next.js is the better fit once this is treated as a real
-product surface rather than a this project demo.
+product surface rather than a demo.
 
 ### ADR-003: Custom `ModelProvider` interface, not LangChain/LangGraph
 **Decision**: Agents are a hand-written interface + stub implementation (see

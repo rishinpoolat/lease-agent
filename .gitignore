@@ -30,3 +30,6 @@ data/uploads/
 # IDE
 .vscode/
 .idea/
+
+# Original source brief (kept locally for reference, not part of the public repo)
+docs/solution-brief.md

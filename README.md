@@ -1,15 +1,15 @@
-# the property owner — Lease Agent This Project
+# Lease Agent
 
 Two linked AI agents for a property owner, unified around a unit: one turns
 an uploaded lease into a structured, validated, traceable record; one turns
 uploaded photos into a condition assessment and a draft work order. Both
 land on one unit screen with full human accept/reject/edit control.
 
-**Status:** working end-to-end, verified via `docker compose up`. the property owner's
-real sample lease/photos hadn't arrived when this was built, so it runs
-against a synthetic fixture lease + placeholder photos (`fixtures/`,
-clearly labeled) — swapping in the real starter pack is a fixture change,
-not an architecture change.
+**Status:** working end-to-end, verified via `docker compose up`. No real
+sample lease/photos were available when this was built, so it runs against
+a synthetic fixture lease + placeholder photos (`fixtures/`, clearly
+labeled) — swapping in real data is a fixture change, not an architecture
+change.
 
 ## How to run it
 
@@ -60,7 +60,8 @@ under Commands.
 - No live API key required — both the text and vision model calls are
   stubbed behind a `ModelProvider` interface.
 
-Full brief: `docs/solution-brief.md`.
+Full brief: `docs/solution-brief.md` (kept locally, gitignored — not part
+of this public repo).
 
 ## Architecture
 
@@ -121,7 +122,7 @@ Highlights:
   stays queued with no message in flight. The correct fix is an outbox
   table + relay process — noted in code (`backend/api/app/routers/leases.py`)
   rather than built, since it's a well-understood pattern that didn't seem
-  worth the time budget for a this project.
+  worth the time budget for this project's current scope.
 - **Hardened production Dockerfiles.** Current ones are dev-style
   (bind-mounted source, dev servers, no multi-stage build, no non-root
   user). Fine for local eval, not for deployment as-is.
@@ -151,7 +152,7 @@ Roughly in order:
    without an outbox.
 3. **`LeaseField` as an EAV table** trades write simplicity for read cost —
    the unit-detail query aggregates rows into an object in the API layer.
-   Fine at this project scale; at real scale you'd want either a materialized
+   Fine at this project's scale; at real scale you'd want either a materialized
    view per lease or to accept the join cost is bounded (it is — one lease
    has on the order of 15 fields, not thousands).
 4. **Local disk storage** — `Storage` is already an interface for exactly
@@ -183,17 +184,10 @@ Roughly in order:
   finding. This is also where the interesting agent-boundary work is for a
   multi-tenant version of this product.
 
-## What's being assessed (per the brief)
+## Design goals
 
 - Real agent behavior (reasoning over docs/images, validation,
   human-in-the-loop) vs. a form with an LLM attached
 - Traceable, overridable outputs
 - How the two features connect around the unit; code/data structure at scale
-- What was built vs. left out, and product ideas for making it more useful
 - Readable code + a clear README
-
-## Deliverables
-
-1. This repo.
-2. A link to an existing public repo of mine, for code-quality review over
-   a real codebase — see the email to the property owner.

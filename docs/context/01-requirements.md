@@ -5,8 +5,9 @@ in scope, and where does the requirement come from?*
 
 ## Authority hierarchy
 
-1. `docs/solution-brief.md` — the this project brief itself, as sent by
-   the property owner. This wins over everything below.
+1. `docs/solution-brief.md` — the original product brief itself (kept
+   locally, gitignored — not part of the public repo). This wins over
+   everything below.
 2. `docs/owner_ruleset.json` / `docs/units.json` — sample data contracts. Field
    names and shapes here are load-bearing; don't rename or restructure them.
 3. This registry's scope decisions (Built / Deferred / Won't-do).

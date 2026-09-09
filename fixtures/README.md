@@ -1,9 +1,9 @@
 # Fixtures — synthetic sample data
 
-**Not provided by the property owner.** No real sample lease or photos had arrived
+**Synthetic, not real data.** No real sample lease or photos were available
 when this was built, so these are authored placeholders used to exercise the
-full pipeline end-to-end. Swap them out once the real starter pack lands —
-see the repo README.
+full pipeline end-to-end. Swap them out once real data is available — see
+the repo README.
 
 - `sample_lease.txt` — a synthetic residential lease for Marina Crest
   Residences, Apartment 1204 (Tower B), written to be realistic enough that
