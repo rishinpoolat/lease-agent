@@ -17,11 +17,11 @@ How to write entries:
 - Name the pattern to follow, not just what's there
 - Update it in the same step as the code change — don't batch for later
 
-Note: this file currently describes the *planned* structure (no application
-code exists yet — see the "Status" line at the top of the file). The first
-feature that scaffolds a given folder should update that folder's section
-from planned to actual, and correct anything the plan got wrong rather than
-leaving stale predictions in place.
+Note: the project is fully built (see the "Status" line at the top of
+`CLAUDE.md`) — `CODEBASE_MAP.md` now describes the actual structure, not a
+plan. Any feature that adds/removes/renames a folder should update its
+section as part of that same change, not leave the map to drift out of
+date.
 
 This is a standing rule for the rest of the current task — if more
 structural changes happen later in the same session, this still applies.
